@@ -1,0 +1,16 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: pathnex-backend
+  labels:
+    app: pathnex-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: pathnex-backend
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+      protocol: TCP

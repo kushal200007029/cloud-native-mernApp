@@ -1,0 +1,19 @@
+
+replicaCount: 1
+
+image:
+  repository: 258109618886.dkr.ecr.ap-south-1.amazonaws.com/pathnex-frontend
+  tag: "REPLACE_WITH_COMMIT_SHA"
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

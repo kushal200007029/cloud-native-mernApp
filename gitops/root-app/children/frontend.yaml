@@ -1,0 +1,26 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pathnex-frontend
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/kushal200007029/cloud-native-mernApp.git
+    targetRevision: main
+    path: gitops/applications/frontend
+    helm:
+      releaseName: frontend
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pathnex
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

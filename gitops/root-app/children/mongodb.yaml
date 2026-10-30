@@ -1,0 +1,28 @@
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pathnex-mongodb
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/kushal200007029/cloud-native-mernApp.git
+    targetRevision: main
+    path: gitops/applications/mongodb
+    helm:
+      releaseName: mongodb
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: pathnex
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
