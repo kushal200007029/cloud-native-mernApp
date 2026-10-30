@@ -1,5 +1,5 @@
 
-name: Pathnex - Build and Push Docker Images
+name: Pathnex - CI Build, Validate and Push
 
 on:
   push:
@@ -13,40 +13,73 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
+
+concurrency:
+  group: pathnex-ci-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
 
 jobs:
-  build-and-push:
-    name: Build and Push to Amazon ECR
+  validate:
+    name: Validate Helm Charts
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Configure AWS authentication using OIDC
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: Lint MongoDB chart
+        run: helm lint gitops/applications/mongodb
+
+      - name: Lint backend chart
+        run: helm lint gitops/applications/backend
+
+      - name: Lint frontend chart
+        run: helm lint gitops/applications/frontend
+
+      - name: Render MongoDB chart
+        run: helm template mongodb gitops/applications/mongodb --namespace pathnex
+
+      - name: Render backend chart
+        run: helm template backend gitops/applications/backend --namespace pathnex
+
+      - name: Render frontend chart
+        run: helm template frontend gitops/applications/frontend --namespace pathnex
+
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # 3. Authenticate with Amazon ECR
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 4. Generate image tag using Git commit SHA
       - name: Generate image tag
         id: image-tag
-        run: echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+        run: |
+          IMAGE_TAG="${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
 
-      # 5. Build and push backend image
       - name: Build and push backend
         uses: docker/build-push-action@v6
         with:
@@ -55,7 +88,6 @@ jobs:
           tags: |
             ${{ env.ECR_REGISTRY }}/pathnex-backend:${{ steps.image-tag.outputs.tag }}
 
-      # 6. Build and push frontend image
       - name: Build and push frontend
         uses: docker/build-push-action@v6
         with:
@@ -63,3 +95,23 @@ jobs:
           push: true
           tags: |
             ${{ env.ECR_REGISTRY }}/pathnex-frontend:${{ steps.image-tag.outputs.tag }}
+
+      - name: Update GitOps image tags
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.tag }}
+        run: |
+          sed -i "s/^  tag: .*/  tag: \"${IMAGE_TAG}\"/" gitops/applications/backend/values.yaml
+          sed -i "s/^  tag: .*/  tag: \"${IMAGE_TAG}\"/" gitops/applications/frontend/values.yaml
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add gitops/applications/backend/values.yaml
+          git add gitops/applications/frontend/values.yaml
+
+          if git diff --cached --quiet; then
+            echo "No GitOps image tag changes detected."
+          else
+            git commit -m "Update application image tags to ${IMAGE_TAG}"
+            git push origin HEAD:main
+          fi
