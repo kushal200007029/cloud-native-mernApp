@@ -3,7 +3,7 @@ replicaCount: 1
 
 image:
   repository: 258109618886.dkr.ecr.ap-south-1.amazonaws.com/pathnex-backend
-  tag: "REPLACE_WITH_COMMIT_SHA"
+  tag: "3ec13c6c22e4c070f8985ba5612d7ec226e92cee-41072308844-1"
   pullPolicy: Always
 
 service:
