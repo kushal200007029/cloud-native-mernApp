@@ -1,30 +1,51 @@
-# Environment variables and secrets
+# ==========================================
+# TERRAFORM - LOCAL STATE AND GENERATED FILES
+# ==========================================
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.plan
+tfplan
+plan-review.txt
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+# ==========================================
+# APPLICATION SECRETS
+# ==========================================
 .env
 .env.*
 !.env.example
 
-# Node dependencies
+# ==========================================
+# NODE.JS
+# ==========================================
 node_modules/
-
-# Build output
 dist/
 build/
+coverage/
 
-# Logs
+# ==========================================
+# LOGS
+# ==========================================
 *.log
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
-# OS and editor files
+# ==========================================
+# EDITORS AND OPERATING SYSTEM
+# ==========================================
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 
-# Test coverage
-coverage/
-
-# Temporary files
+# ==========================================
+# TEMPORARY FILES
+# ==========================================
 *.tmp
 *.temp
